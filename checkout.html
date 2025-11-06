@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Checkout - Mari Elegance</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://www.paypal.com/sdk/js?client-id=AZzySandboxClientID_1234567890&currency=USD" data-sdk-integration-source="button-factory"></script>
+</head>
+<body>
+  <header class="header"><div class="logo">Mari Elegance</div></header>
+  <main class="container" style="padding-top:26px;">
+    <h2 style="font-family:'Playfair Display',serif">Carrito y Pago</h2>
+    <div id="cart-contents"></div>
+
+    <div id="payment-methods" style="margin-top:18px">
+      <h3>Métodos de pago</h3>
+      <div id="paypal-button-container"></div>
+      <div style="margin-top:12px">
+        <button class="small-btn" id="pay-by-card">Pagar con tarjeta (PayPal)</button>
+        <a class="small-btn" id="pay-by-whatsapp" href="https://wa.me/10000000000?text=Quiero%20confirmar%20mi%20pedido" target="_blank">Pagar por WhatsApp</a>
+      </div>
+      <p class="muted" style="margin-top:10px">Klarna: si está disponible en tu cuenta PayPal, aparecerá como opción en el widget de PayPal.</p>
+    </div>
+
+    <div id="checkout-actions" style="margin-top:20px"></div>
+  </main>
+
+<script>
+async function loadCart(){
+  const res = await fetch('products.json'); const products = await res.json();
+  const cart = JSON.parse(localStorage.getItem('me_cart')||'[]');
+  const container = document.getElementById('cart-contents');
+  if(cart.length===0){ container.innerHTML='<p>Tu carrito está vacío.</p>'; return; }
+  let html = '<table style="width:100%;border-collapse:collapse"><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio</th></tr></thead><tbody>';
+  let total = 0;
+  cart.forEach(ci=>{
+    const p = products.find(x=>x.id===ci.id);
+    const line = (p.price*ci.qty)/100;
+    total += line;
+    html += `<tr><td>${p.name}</td><td>${ci.qty}</td><td>$${(line).toFixed(2)}</td></tr>`;
+  });
+  html += `</tbody></table><p style="margin-top:12px;font-weight:700">Total: $${total.toFixed(2)}</p>`;
+  container.innerHTML = html;
+
+  if (window.paypal) {
+    document.getElementById('paypal-button-container').innerHTML = '';
+    paypal.Buttons({
+      style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay' },
+      createOrder: function(data, actions) {
+        return actions.order.create({
+          purchase_units: [{ amount: { value: total.toFixed(2) } }]
+        });
+      },
+      onApprove: function(data, actions) {
+        return actions.order.capture().then(function(details) {
+          localStorage.removeItem('me_cart');
+          window.location.href = 'confirmation.html';
+        });
+      },
+      onError: function(err){
+        alert('Error en el pago: ' + err);
+      }
+    }).render('#paypal-button-container');
+  } else {
+    document.getElementById('paypal-button-container').innerText = 'Cargando PayPal...';
+  }
+
+  document.getElementById('pay-by-card').addEventListener('click', function(e){
+    alert('Se iniciaría flujo de pago con tarjeta (PayPal) - demo.');
+  });
+}
+
+window.addEventListener('load', loadCart);
+</script>
+
+</body>
+</html>
