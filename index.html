@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mari Elegance</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Cormorant+Garamond:wght@400;600&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header class="header">
+    <div class="brand">
+      <img src="images/halo-logo.png" alt="Halo Logo" class="halo" />
+      <div>
+        <div class="logo">Mari Elegance</div>
+        <div class="tagline">Favor y Gracia</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a href="#scents">Perfumes Árabes</a>
+      <a href="#pieces">Accesorios</a>
+      <a href="#about">Sobre</a>
+      <a href="#contact">Contacto</a>
+      <button id="adminToggle" class="admin-btn" title="Mode admin: show image inputs">Editar imágenes</button>
+    </nav>
+  </header>
+
+  <section class="hero" id="home" aria-label="Hero">
+    <div class="hero-inner">
+      <h1>Favor y Gracia</h1>
+      <p class="hero-sub">Belleza que refleja la luz divina — fragancias orientales y accesorios en oro laminado.</p>
+      <a class="btn" href="#products">Comprar destacados</a>
+    </div>
+    <div class="hero-overlay halo-effect" aria-hidden="true"></div>
+  </section>
+
+  <main class="container" id="products">
+    <section id="scents" class="section-block">
+      <div class="section-title">
+        <h2>Perfumes Árabes</h2>
+        <span class="muted">Aceites y esencias de larga duración</span>
+      </div>
+      <div class="grid" id="grid-scents"></div>
+    </section>
+
+    <section id="pieces" class="section-block">
+      <div class="section-title">
+        <h2>Accesorios de Oro Laminado</h2>
+        <span class="muted">Piezas delicadas para uso diario</span>
+      </div>
+      <div class="grid" id="grid-pieces"></div>
+    </section>
+
+    <section id="about" class="about section-block">
+      <div class="about-text">
+        <h3>Sobre Mari Elegance</h3>
+        <p>Mari Elegance nace de la búsqueda por la belleza serena: fragancias orientales y piezas con acabado en oro que celebran la gracia cotidiana. Inspirado por la luz y la fe, cada colección pretende acompañar momentos de confianza y calma.</p>
+        <p class="muted">Pedidos y consultas personalizados vía WhatsApp o durante el proceso de pago.</p>
+      </div>
+      <div class="about-image">
+        <img id="aboutImg" src="images/about-image.jpg" alt="Sobre Mari Elegance">
+      </div>
+    </section>
+
+    <section id="contact" class="section-block contact-block">
+      <h3>Contacto</h3>
+      <p class="muted">Atención personalizada por WhatsApp o correo.</p>
+      <div class="contact-actions">
+        <a class="btn" href="https://wa.me/10000000000" target="_blank" rel="noopener">Enviar mensaje</a>
+        <a class="small-btn" href="checkout.html">Ir al carrito</a>
+      </div>
+    </section>
+  </main>
+
+  <button class="cart-fixed" id="open-cart" title="Ver carrito">Carrito (0)</button>
+
+  <section class="faith-note">
+    <p>“La gracia y la dignidad la acompañan; se ríe del porvenir.” — Inspirado en Proverbios 31</p>
+  </section>
+
+  <footer class="footer">
+    <div>© 2025 Mari Elegance — Favor y Gracia</div>
+    <div class="footer-links">Instagram • TikTok</div>
+  </footer>
+
+  <div id="imageAdmin" class="image-admin" hidden>
+    <h4>Editar imágenes (modo admin)</h4>
+    <div id="imageInputs"></div>
+    <small class="muted">Sube imágenes para previsualizarlas; estos cambios se guardan en tu navegador (localStorage) para pruebas. Para publicar, reemplaza los archivos en /images/ en tu hosting.</small>
+  </div>
+
+<script>
+let products = [];
+const ADMIN_PARAM = new URLSearchParams(window.location.search).get('admin') === '1';
+
+async function loadProducts() {
+  const res = await fetch('products.json');
+  products = await res.json();
+  renderProducts();
+  if (ADMIN_PARAM) enableAdminMode();
+}
+
+function imgOverride(srcName) {
+  const overrides = JSON.parse(localStorage.getItem('me_img_overrides') || '{}');
+  return overrides[srcName] || srcName;
+}
+
+function renderProducts() {
+  const gridScents = document.getElementById('grid-scents');
+  const gridPieces = document.getElementById('grid-pieces');
+  gridScents.innerHTML = ''; gridPieces.innerHTML = '';
+  products.forEach(p => {
+    const imgSrc = 'images/' + imgOverride(p.img);
+    const card = document.createElement('article');
+    card.className = 'card';
+    card.innerHTML = `
+      <img src="${imgSrc}" alt="${p.name}" onerror="this.src='images/placeholder.jpg'">
+      <h3>${p.name}</h3>
+      <p class="desc">${p.desc}</p>
+      <div class="price">${p.price_display}</div>
+      <div class="actions">
+        <button class="small-btn" onclick="addToCart(${p.id})">Agregar</button>
+        <a class="small-btn" target="_blank" rel="noopener" href="https://wa.me/10000000000?text=Quiero%20ordenar%20${encodeURIComponent(p.name)}">WhatsApp</a>
+      </div>
+    `;
+    if (p.category.includes('Perfumes')) gridScents.appendChild(card);
+    else gridPieces.appendChild(card);
+  });
+}
+
+function getCart(){ return JSON.parse(localStorage.getItem('me_cart')||'[]'); }
+function saveCart(c){ localStorage.setItem('me_cart', JSON.stringify(c)); updateCartCount(); }
+function addToCart(id){ const cart = getCart(); const it = cart.find(i=>i.id===id); if(it) it.qty+=1; else cart.push({id,qty:1}); saveCart(cart); alert('Añadido al carrito'); }
+function updateCartCount(){ const cart=getCart(); const count=cart.reduce((s,i)=>s+i.qty,0); document.getElementById('open-cart').innerText=`Carrito (${count})`; }
+document.getElementById('open-cart').addEventListener('click', ()=> location.href = 'checkout.html');
+
+function enableAdminMode(){
+  document.getElementById('imageAdmin').hidden = false;
+  const container = document.getElementById('imageInputs');
+  container.innerHTML = '';
+  const overrides = JSON.parse(localStorage.getItem('me_img_overrides') || '{}');
+  products.forEach(p=>{
+    const key = p.img;
+    const row = document.createElement('div');
+    row.className = 'img-row';
+    row.innerHTML = `
+      <div class="img-preview"><img src="images/${overrides[key] || key}" alt="${p.name}" onerror="this.src='images/placeholder.jpg'"></div>
+      <div class="img-controls">
+        <label> ${p.name} <input type="file" accept="image/*" onchange="handleImgChange(event,'${key}')"></label>
+        <div><button class="small-btn" onclick="clearOverride('${key}')">Borrar override</button></div>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function handleImgChange(e, key){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    const overrides = JSON.parse(localStorage.getItem('me_img_overrides')||'{}');
+    overrides[key] = evt.target.result;
+    localStorage.setItem('me_img_overrides', JSON.stringify(overrides));
+    renderProducts();
+    document.getElementById('imageInputs').innerHTML = ''; enableAdminMode();
+  };
+  reader.readAsDataURL(file);
+}
+function clearOverride(key){
+  const overrides = JSON.parse(localStorage.getItem('me_img_overrides')||'{}');
+  delete overrides[key];
+  localStorage.setItem('me_img_overrides', JSON.stringify(overrides));
+  document.getElementById('imageInputs').innerHTML = ''; enableAdminMode(); renderProducts();
+}
+
+document.getElementById('adminToggle').addEventListener('click', ()=>{
+  localStorage.setItem('me_admin_click', (localStorage.getItem('me_admin_click') === '1') ? '0' : '1');
+  const enabled = localStorage.getItem('me_admin_click') === '1';
+  if(enabled) { document.getElementById('imageAdmin').hidden = false; enableAdminMode(); }
+  else { document.getElementById('imageAdmin').hidden = true; }
+});
+
+window.addEventListener('load', async ()=>{
+  await loadProducts();
+  updateCartCount();
+  if(ADMIN_PARAM) {
+    localStorage.setItem('me_admin_click','1');
+    document.getElementById('imageAdmin').hidden = false;
+    enableAdminMode();
+  } else {
+    if(localStorage.getItem('me_admin_click') === '1') { document.getElementById('imageAdmin').hidden = false; enableAdminMode(); }
+  }
+});
+</script>
+
+</body>
+</html>
